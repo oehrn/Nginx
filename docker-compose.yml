@@ -1,0 +1,50 @@
+name: nginx
+
+services:
+  app:
+    image: jc21/nginx-proxy-manager:2.14.0
+    container_name: ${NPM_CONTAINER_NAME:-nginx-proxy-manager}
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "${NPM_HTTP_PORT:-80}:80/tcp"
+      - "${NPM_HTTPS_PORT:-443}:443/tcp"
+      - "${NPM_ADMIN_PORT:-81}:81/tcp"
+    environment:
+      DB_MYSQL_HOST: db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: ${MYSQL_USER:-npm}
+      DB_MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      DB_MYSQL_NAME: ${MYSQL_DATABASE:-npm}
+      DISABLE_IPV6: ${DISABLE_IPV6:-true}
+    volumes:
+      - data:/data
+      - letsencrypt:/etc/letsencrypt
+
+  db:
+    image: jc21/mariadb-aria:10.11.5-innodb
+    container_name: ${DB_CONTAINER_NAME:-nginx-proxy-manager-db}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-npm}
+      MYSQL_USER: ${MYSQL_USER:-npm}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - mysql:/var/lib/mysql
+
+volumes:
+  data:
+    name: nginx_data
+  letsencrypt:
+    name: nginx_letsencrypt
+  mysql:
+    name: nginx_mysql
